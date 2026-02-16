@@ -1,0 +1,66 @@
+# ============================================================================
+# PYTHON DEPENDENCIES
+# ============================================================================
+# This file lists all the Python libraries needed for the log monitoring system
+
+# ----------------------------------------------------------------------------
+# CORE PROCESSING LIBRARIES
+# ----------------------------------------------------------------------------
+
+# DASK: Parallel data processing
+# What it does: Handles millions of logs efficiently by processing in parallel
+# Example: Instead of processing 1 million logs one-by-one (slow), 
+#          Dask processes 10,000 logs at a time across multiple CPU cores
+dask[complete]==2024.1.1
+
+# RAY: Distributed computing and monitoring
+# What it does: Runs anomaly detection across multiple machines
+# Example: Can monitor 100 services simultaneously, checking for problems
+ray[default]==2.9.0
+
+# PYYAML: YAML file parser
+# What it does: Reads our log_schema.yaml and anomaly_schema.yaml files
+# Example: Converts YAML text into Python dictionaries
+pyyaml==6.0.1
+
+# PANDAS: Data manipulation
+# What it does: Helps organize and analyze log data
+# Example: Filter logs, group by service, calculate statistics
+pandas==2.1.4
+
+# ----------------------------------------------------------------------------
+# VISUALIZATION LIBRARIES
+# ----------------------------------------------------------------------------
+
+# BOKEH: Interactive visualization
+# What it does: Creates the Dask dashboard you can view in browser
+# Example: Shows graphs of task processing, resource usage
+bokeh==3.3.2
+
+# DISTRIBUTED: Dask scheduler
+# What it does: Manages how Dask distributes work across workers
+# Example: Coordinates 10 workers to process different log files
+distributed==2024.1.1
+
+# ----------------------------------------------------------------------------
+# TESTING LIBRARIES
+# ----------------------------------------------------------------------------
+
+# PYTEST: Testing framework
+# What it does: Runs our test files to verify everything works
+# Example: Automatically runs all functions starting with "test_"
+pytest==7.4.3
+
+# PYTEST-COV: Test coverage
+# What it does: Shows which code is tested and which isn't
+# Example: "90% of your code has tests"
+pytest-cov==4.1.0
+
+# ============================================================================
+# WHY THESE SPECIFIC VERSIONS?
+# ============================================================================
+# We pin specific versions (==2024.1.1) instead of using latest (>=2024.1.1)
+# Reason: Ensures everyone has the exact same environment
+# Example: If your teammate uses Ray 2.10 and you use 2.9, 
+#          code might work for them but not you
+# ============================================================================

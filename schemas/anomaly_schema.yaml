@@ -1,0 +1,358 @@
+# ============================================================================
+# ANOMALY DETECTION RULES
+# ============================================================================
+# This file defines the "problems" we want to catch automatically
+# Each rule is a pattern that indicates something is wrong with the system
+
+# ----------------------------------------------------------------------------
+# ANOMALIES LIST
+# ----------------------------------------------------------------------------
+anomalies:
+
+  # ==========================================================================
+  # ANOMALY 1: ERROR SPIKE
+  # ==========================================================================
+  # WHAT IS THIS?
+  # Detects when there's a sudden increase in error messages
+  # 
+  # WHY IT MATTERS?
+  # Normal: 5-10 errors per 5 minutes (users mistyping passwords, etc.)
+  # Problem: 100+ errors in 5 minutes = something is seriously broken
+  #
+  # REAL EXAMPLE:
+  # Developer deploys new code → breaks payment system → 200 errors/minute
+  # System detects this and immediately alerts the team
+  - name: error_spike                       # Unique identifier for this anomaly
+    description: "Sudden increase in error rate"  # Human explanation
+    severity: HIGH                          # How urgent? (LOW/MEDIUM/HIGH/CRITICAL)
+    
+    # HOW TO DETECT IT:
+    # 1. Count all logs where level = "ERROR"
+    # 2. Use a 5-minute sliding window
+    # 3. If count > 100, trigger alert
+    how_to_detect: "Count ERROR logs in 5-minute sliding window"
+    
+    # THRESHOLD CONFIGURATION:
+    threshold:
+      count: 100                            # Trigger when exceeds 100 errors
+      time_window: "5 minutes"              # Within 5 minutes
+      level: "ERROR"                        # Only count ERROR level logs
+    
+    # WHAT TO DO WHEN DETECTED:
+    action: "Send Slack alert to #incidents channel"
+    
+    # TECHNICAL IMPLEMENTATION:
+    # SELECT COUNT(*) FROM logs 
+    # WHERE level = 'ERROR' 
+    # AND timestamp > NOW() - INTERVAL '5 minutes'
+    # HAVING COUNT(*) > 100
+
+  # ==========================================================================
+  # ANOMALY 2: SERVICE DOWN
+  # ==========================================================================
+  # WHAT IS THIS?
+  # Detects when a service stops sending any logs (probably crashed)
+  #
+  # WHY IT MATTERS?
+  # Healthy services continuously log (heartbeats, user actions, etc.)
+  # No logs = service crashed, server died, network issue
+  #
+  # REAL EXAMPLE:
+  # Payment service crashes at 2am → no logs for 10 minutes
+  # System detects silence and pages on-call engineer
+  - name: service_down                      # Unique identifier
+    description: "No logs received from a service"
+    severity: CRITICAL                      # Most serious - service is dead!
+    
+    # HOW TO DETECT IT:
+    # 1. Track last log timestamp for each service
+    # 2. Check: Has service sent any logs in last 10 minutes?
+    # 3. If no, service is probably down
+    how_to_detect: "Check last log timestamp per service"
+    
+    # THRESHOLD CONFIGURATION:
+    threshold:
+      silence_duration: "10 minutes"        # No logs for 10 minutes = problem
+      expected_services:                    # List of critical services to monitor
+        - "auth-service"                    # Authentication service
+        - "payment-service"                 # Payment processing
+        - "database-service"                # Database connections
+        - "api-gateway"                     # Main API entry point
+    
+    # WHAT TO DO WHEN DETECTED:
+    action: "Page on-call engineer immediately"
+    
+    # TECHNICAL IMPLEMENTATION:
+    # FOR EACH service IN expected_services:
+    #   last_log = SELECT MAX(timestamp) FROM logs WHERE service = ?
+    #   IF NOW() - last_log > 10 minutes:
+    #     TRIGGER ALERT
+
+  # ==========================================================================
+  # ANOMALY 3: SLOW RESPONSE TIME
+  # ==========================================================================
+  # WHAT IS THIS?
+  # Detects when operations are taking too long to complete
+  #
+  # WHY IT MATTERS?
+  # Normal: API responds in 100-500ms
+  # Problem: API taking 5+ seconds = users see loading spinners, get frustrated
+  #
+  # REAL EXAMPLE:
+  # Database query becomes slow → every API call takes 8 seconds
+  # Users complain "site is slow" → system already detected it
+  - name: slow_response                     # Unique identifier
+    description: "Response times exceeding acceptable limits"
+    severity: MEDIUM                        # Important but not critical
+    
+    # HOW TO DETECT IT:
+    # 1. Check the duration_ms field in logs
+    # 2. If 10 consecutive requests take >5 seconds
+    # 3. Flag as performance issue
+    how_to_detect: "Monitor duration_ms field in logs"
+    
+    # THRESHOLD CONFIGURATION:
+    threshold:
+      duration_ms: 5000                     # 5 seconds (5000 milliseconds)
+      consecutive_count: 10                 # 10 slow requests in a row
+      time_window: "2 minutes"              # Within 2 minutes
+    
+    # WHAT TO DO WHEN DETECTED:
+    action: "Create performance ticket, add to monitoring dashboard"
+    
+    # TECHNICAL IMPLEMENTATION:
+    # SELECT COUNT(*) FROM logs
+    # WHERE duration_ms > 5000
+    # AND timestamp > NOW() - INTERVAL '2 minutes'
+    # HAVING COUNT(*) >= 10
+
+  # ==========================================================================
+  # ANOMALY 4: SUSPICIOUS USER ACTIVITY
+  # ==========================================================================
+  # WHAT IS THIS?
+  # Detects when a single user is causing too many errors
+  #
+  # WHY IT MATTERS?
+  # Normal: Users cause 0-2 errors per hour (typos, network issues)
+  # Problem: 50+ errors from one user = possible attack, bot, or broken feature
+  #
+  # REAL EXAMPLE:
+  # Bot tries to brute-force passwords → 200 failed login attempts
+  # OR: Bug in mobile app → one user generates 100 errors
+  - name: unusual_user_activity             # Unique identifier
+    description: "Single user generating excessive errors"
+    severity: MEDIUM
+    
+    # HOW TO DETECT IT:
+    # 1. Group ERROR logs by user_id
+    # 2. Count errors per user
+    # 3. If one user has 50+ errors in 1 hour, investigate
+    how_to_detect: "Group ERROR logs by user_id, count per user"
+    
+    # THRESHOLD CONFIGURATION:
+    threshold:
+      error_count: 50                       # 50 errors from one user
+      time_window: "1 hour"                 # Within 1 hour
+      level: "ERROR"                        # Only count errors
+    
+    # WHAT TO DO WHEN DETECTED:
+    action: "Flag account for security review, notify security team"
+    
+    # TECHNICAL IMPLEMENTATION:
+    # SELECT user_id, COUNT(*) as error_count
+    # FROM logs
+    # WHERE level = 'ERROR'
+    # AND timestamp > NOW() - INTERVAL '1 hour'
+    # GROUP BY user_id
+    # HAVING COUNT(*) > 50
+
+  # ==========================================================================
+  # ANOMALY 5: DATABASE CONNECTION FAILURE
+  # ==========================================================================
+  # WHAT IS THIS?
+  # Detects when the system cannot connect to the database
+  #
+  # WHY IT MATTERS?
+  # Database down = entire application stops working
+  # Users can't login, can't checkout, can't do anything
+  #
+  # REAL EXAMPLE:
+  # Database crashes → 50 services try to connect → all fail
+  # System detects pattern and automatically restarts connection pool
+  - name: database_connection_failure       # Unique identifier
+    description: "Multiple database connection failures"
+    severity: CRITICAL                      # Most serious - app is down!
+    
+    # HOW TO DETECT IT:
+    # 1. Search for "connection failed" in message field
+    # 2. Only look at logs from database-service
+    # 3. If appears 10+ times in 2 minutes, database is down
+    how_to_detect: "Search for 'connection failed' in messages from database-service"
+    
+    # THRESHOLD CONFIGURATION:
+    threshold:
+      keyword: "connection failed"          # Text to search for in messages
+      count: 10                             # 10 occurrences
+      time_window: "2 minutes"              # Within 2 minutes
+      service: "database-service"           # Only check database service
+    
+    # WHAT TO DO WHEN DETECTED:
+    action: "Auto-restart connection pool, alert database admin, page if restart fails"
+    
+    # TECHNICAL IMPLEMENTATION:
+    # SELECT COUNT(*) FROM logs
+    # WHERE service = 'database-service'
+    # AND message LIKE '%connection failed%'
+    # AND timestamp > NOW() - INTERVAL '2 minutes'
+    # HAVING COUNT(*) > 10
+
+  # ==========================================================================
+  # ANOMALY 6: AUTHENTICATION FAILURES
+  # ==========================================================================
+  # WHAT IS THIS?
+  # Detects too many failed login attempts (possible attack)
+  #
+  # WHY IT MATTERS?
+  # Normal: 1-5 failed logins per 5 min (people forgetting passwords)
+  # Problem: 30+ failed logins = brute force attack, credential stuffing
+  #
+  # REAL EXAMPLE:
+  # Hacker tries 1000 password combinations for admin account
+  # System detects 30 failures in 5 minutes and enables rate limiting
+  - name: auth_failure_spike                # Unique identifier
+    description: "Unusual number of failed authentication attempts"
+    severity: HIGH                          # Security threat!
+    
+    # HOW TO DETECT IT:
+    # 1. Look for "authentication failed" in logs from auth-service
+    # 2. Count occurrences in 5-minute window
+    # 3. If > 30, possible attack
+    how_to_detect: "Count logs with 'authentication failed' from auth-service"
+    
+    # THRESHOLD CONFIGURATION:
+    threshold:
+      keyword: "authentication failed"      # Search term
+      count: 30                             # 30 failed attempts
+      time_window: "5 minutes"              # Within 5 minutes
+      service: "auth-service"               # Only authentication service
+    
+    # WHAT TO DO WHEN DETECTED:
+    action: "Enable rate limiting, notify security team, consider CAPTCHA"
+    
+    # TECHNICAL IMPLEMENTATION:
+    # SELECT COUNT(*) FROM logs
+    # WHERE service = 'auth-service'
+    # AND message LIKE '%authentication failed%'
+    # AND timestamp > NOW() - INTERVAL '5 minutes'
+    # HAVING COUNT(*) > 30
+
+  # ==========================================================================
+  # ANOMALY 7: DISK SPACE WARNING
+  # ==========================================================================
+  # WHAT IS THIS?
+  # Detects when server is running out of disk space
+  #
+  # WHY IT MATTERS?
+  # Full disk = system can't write logs, can't save data, crashes
+  # Need to clean up before it's too late
+  #
+  # REAL EXAMPLE:
+  # Log files accumulating → disk 95% full
+  # System detects and automatically archives old logs
+  - name: disk_space_low                    # Unique identifier
+    description: "Available disk space below safe threshold"
+    severity: HIGH                          # Urgent - can cause crashes
+    
+    # HOW TO DETECT IT:
+    # 1. Check system logs for disk space warnings
+    # 2. Monitor disk usage percentage
+    # 3. Alert at 90%, emergency action at 95%
+    how_to_detect: "Check system logs for disk space warnings"
+    
+    # THRESHOLD CONFIGURATION:
+    threshold:
+      keyword: "disk space"                 # Search term
+      percentage: 90                        # Alert at 90% full
+      action_at: 95                         # Emergency at 95% full
+    
+    # WHAT TO DO WHEN DETECTED:
+    action: "Archive old logs, alert DevOps, consider scaling storage"
+    
+    # TECHNICAL IMPLEMENTATION:
+    # disk_usage = GET_DISK_USAGE()
+    # IF disk_usage > 90%:
+    #   TRIGGER WARNING
+    # IF disk_usage > 95%:
+    #   ARCHIVE OLD LOGS
+    #   PAGE ADMIN
+
+# ============================================================================
+# HOW ANOMALY DETECTION WORKS IN THE SYSTEM
+# ============================================================================
+#
+# STEP 1: LOG ARRIVES
+# Application generates log → sent to log collector
+#
+# STEP 2: DASK PROCESSES
+# Dask ingests log, adds to database
+#
+# STEP 3: RAY MONITORS (THIS IS WHERE THIS FILE IS USED)
+# Ray continuously runs these checks:
+#
+# Every 10 seconds:
+#   FOR EACH anomaly_rule IN this_file:
+#     - Count matching logs
+#     - Compare to threshold
+#     - If threshold exceeded → TRIGGER ALERT
+#
+# STEP 4: ALERT TRIGGERED
+# Send Slack message, page engineer, create ticket, etc.
+#
+# ============================================================================
+# EXAMPLE FLOW
+# ============================================================================
+#
+# 1. User tries to checkout → Payment fails → ERROR log created
+# 2. Log #1: timestamp=10:00:00, level=ERROR, service=payment-service
+# 3. Log #2: timestamp=10:00:05, level=ERROR, service=payment-service
+# 4. ... (98 more errors) ...
+# 5. Log #100: timestamp=10:04:30, level=ERROR, service=payment-service
+# 
+# 6. Ray checks error_spike rule:
+#    - Counts errors in last 5 minutes
+#    - Finds 100 errors
+#    - Threshold is 100 → TRIGGERED!
+#
+# 7. System sends Slack alert:
+#    "⚠️ ERROR SPIKE DETECTED
+#     Service: payment-service
+#     Count: 100 errors in 5 minutes
+#     Severity: HIGH
+#     Action: Investigate immediately"
+#
+# 8. DevOps team investigates and fixes the issue
+#
+# ============================================================================
+# CUSTOMIZATION GUIDE
+# ============================================================================
+#
+# Want to add your own anomaly? Follow this template:
+#
+# - name: my_custom_anomaly
+#   description: "What problem does this detect?"
+#   severity: LOW/MEDIUM/HIGH/CRITICAL
+#   how_to_detect: "Explain the detection logic"
+#   threshold:
+#     # Your conditions here
+#     count: 50
+#     time_window: "10 minutes"
+#   action: "What to do when detected"
+#
+# Examples of custom anomalies you could add:
+# - API rate limit exceeded
+# - Payment gateway timeout spike
+# - Memory usage too high
+# - SSL certificate expiring soon
+# - Too many 404 errors (broken links)
+#
+# ============================================================================
