@@ -1,24 +1,16 @@
-# ============================================================================
+
 # ANOMALY DETECTION RULES
-# ============================================================================
+
 # This file defines the "problems" we want to catch automatically
 # Each rule is a pattern that indicates something is wrong with the system
 
-# ----------------------------------------------------------------------------
-# ANOMALIES LIST
-# ----------------------------------------------------------------------------
-anomalies:
 
-  # ==========================================================================
   # ANOMALY 1: ERROR SPIKE
   # ==========================================================================
   # WHAT IS THIS?
   # Detects when there's a sudden increase in error messages
   # 
-  # WHY IT MATTERS?
-  # Normal: 5-10 errors per 5 minutes (users mistyping passwords, etc.)
-  # Problem: 100+ errors in 5 minutes = something is seriously broken
-  #
+ 
   # REAL EXAMPLE:
   # Developer deploys new code → breaks payment system → 200 errors/minute
   # System detects this and immediately alerts the team
@@ -88,7 +80,6 @@ anomalies:
     #   IF NOW() - last_log > 10 minutes:
     #     TRIGGER ALERT
 
-  # ==========================================================================
   # ANOMALY 3: SLOW RESPONSE TIME
   # ==========================================================================
   # WHAT IS THIS?
@@ -331,28 +322,3 @@ anomalies:
 #     Action: Investigate immediately"
 #
 # 8. DevOps team investigates and fixes the issue
-#
-# ============================================================================
-# CUSTOMIZATION GUIDE
-# ============================================================================
-#
-# Want to add your own anomaly? Follow this template:
-#
-# - name: my_custom_anomaly
-#   description: "What problem does this detect?"
-#   severity: LOW/MEDIUM/HIGH/CRITICAL
-#   how_to_detect: "Explain the detection logic"
-#   threshold:
-#     # Your conditions here
-#     count: 50
-#     time_window: "10 minutes"
-#   action: "What to do when detected"
-#
-# Examples of custom anomalies you could add:
-# - API rate limit exceeded
-# - Payment gateway timeout spike
-# - Memory usage too high
-# - SSL certificate expiring soon
-# - Too many 404 errors (broken links)
-#
-# ============================================================================
