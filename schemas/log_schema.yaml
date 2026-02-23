@@ -1,19 +1,15 @@
-# ============================================================================
-# LOG SCHEMA DEFINITION
-# ============================================================================
-# This file defines the structure of every log entry in our system
-# Think of it as a template/blueprint that all logs must follow
 
-# ----------------------------------------------------------------------------
-# MAIN LOG ENTRY STRUCTURE
-# ----------------------------------------------------------------------------
-log_entry:
+LOG SCHEMA DEFINITION
+This file defines the structure of every log entry in our system
+
+
+
   # The "fields" section lists all the data points we want in each log
+ 
   fields:
-    
-    # ========================================================================
+      
     # FIELD 1: TIMESTAMP
-    # ========================================================================
+      ========================================================================
     # PURPOSE: Records the exact time when an event occurred
     # WHY: Critical for debugging - helps you trace when problems started
     # EXAMPLE: "2024-02-13 14:23:45"
@@ -24,7 +20,6 @@ log_entry:
       example: "2024-02-13 14:23:45"       # Sample value
       description: "Exact time when the event occurred"
     
-    # ========================================================================
     # FIELD 2: LEVEL
     # ========================================================================
     # PURPOSE: Indicates how serious/important this log is
@@ -42,7 +37,6 @@ log_entry:
       # ERROR    = Something failed (payment declined, API timeout)
       # CRITICAL = System in danger (database down, out of memory)
     
-    # ========================================================================
     # FIELD 3: SERVICE
     # ========================================================================
     # PURPOSE: Identifies which application/service created this log
@@ -54,7 +48,6 @@ log_entry:
       example: "payment-service"            # Sample service name
       description: "Name of the application/service that generated this log"
     
-    # ========================================================================
     # FIELD 4: MESSAGE
     # ========================================================================
     # PURPOSE: Human-readable description of what happened
@@ -66,8 +59,8 @@ log_entry:
       example: "Payment transaction failed due to insufficient funds"
       description: "Human-readable description of what happened"
     
-    # ========================================================================
-    # FIELD 5: USER_ID (Optional)
+  
+    # FIELD 5: USER_ID 
     # ========================================================================
     # PURPOSE: Links the log to a specific user
     # WHY: Helps debug user-specific issues, track user behavior
@@ -78,8 +71,7 @@ log_entry:
       example: "user_12345"                 # Sample user identifier
       description: "Unique identifier of the user who triggered this event"
     
-    # ========================================================================
-    # FIELD 6: REQUEST_ID (Optional)
+    # FIELD 6: REQUEST_ID
     # ========================================================================
     # PURPOSE: Traces a single request across multiple services
     # WHY: When a user action involves 5 services, this connects all logs
@@ -91,7 +83,6 @@ log_entry:
       example: "req_abc123xyz"              # Sample request ID
       description: "Unique ID to trace a request across multiple services"
     
-    # ========================================================================
     # FIELD 7: ERROR_CODE (Optional)
     # ========================================================================
     # PURPOSE: Machine-readable error identifier
@@ -103,7 +94,6 @@ log_entry:
       example: "ERR_TIMEOUT"                # Sample error code
       description: "Specific error code for programmatic handling"
     
-    # ========================================================================
     # FIELD 8: DURATION_MS (Optional)
     # ========================================================================
     # PURPOSE: How long did the operation take?
@@ -115,7 +105,6 @@ log_entry:
       example: 1250                         # Sample: 1.25 seconds
       description: "Time taken to complete the operation in milliseconds"
     
-    # ========================================================================
     # FIELD 9: IP_ADDRESS (Optional)
     # ========================================================================
     # PURPOSE: Where did the request come from?
@@ -127,11 +116,8 @@ log_entry:
       example: "192.168.1.100"              # Sample IP
       description: "IP address of the client making the request"
 
-# ============================================================================
-# EXAMPLE LOG ENTRIES
-# ============================================================================
-# These show what actual logs look like in practice
 
+# EXAMPLE LOG ENTRIES
 examples:
   # --------------------------------------------------------------------------
   # EXAMPLE 1: INFO Level - Normal Operation
@@ -179,57 +165,4 @@ examples:
     duration_ms: 30000                       # Took 30 seconds (timed out)
     ip_address: "192.168.1.100"
     # USE CASE: Immediate investigation needed, user cannot complete purchase
-
-# ============================================================================
-# WHY THIS SCHEMA DESIGN?
-# ============================================================================
-# 
-# 1. CONSISTENCY
-#    - Every log follows the same format
-#    - Makes automated processing possible
-#    - Easy to search and filter
-#
-# 2. TRACEABILITY
-#    - request_id lets you follow a single user action across all services
-#    - Example: Track a purchase from login → cart → payment → shipping
-#
-# 3. DEBUGGABILITY
-#    - timestamp: When did it break?
-#    - service: Which app is broken?
-#    - error_code: What specific error?
-#    - duration_ms: Performance issue?
-#
-# 4. SCALABILITY
-#    - Works for 10 logs per minute or 10 million logs per minute
-#    - Dask can process this format efficiently
-#
-# 5. ACTIONABILITY
-#    - level tells you urgency (CRITICAL = wake up engineer at 3am)
-#    - error_code enables automated responses
-#    - user_id helps customer support
-#
-# ============================================================================
-# HOW THIS GETS USED IN THE SYSTEM
-# ============================================================================
-#
-# 1. APPLICATION GENERATES LOG:
-#    app.log({
-#      "timestamp": "2024-02-13 14:23:45",
-#      "level": "ERROR",
-#      "service": "payment-service",
-#      "message": "Payment failed"
-#    })
-#
-# 2. LOG COLLECTOR RECEIVES IT:
-#    Validates against this schema - all required fields present?
-#
-# 3. DASK PROCESSES IT:
-#    Loads millions of logs, filters, aggregates, analyzes
-#
-# 4. RAY MONITORS IT:
-#    Checks for anomalies (too many errors? service down?)
-#
-# 5. ALERT TRIGGERED:
-#    If anomaly detected, send Slack/email alert
-#
-# ============================================================================
+    
